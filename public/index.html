@@ -1,0 +1,162 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>NormTub PRO</title>
+<style>
+body{margin:0;background:#0f0f0f;color:white;font-family:Arial}
+
+/* TOP BAR */
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  padding:10px;
+  background:#181818;
+}
+input,button{padding:8px}
+
+/* GRID */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:20px;
+  padding:20px;
+}
+
+/* CARD */
+.card{
+  background:#1a1a1a;
+  padding:10px;
+  border-radius:12px;
+  cursor:pointer;
+}
+
+/* VIDEO */
+video{
+  width:100%;
+  border-radius:10px;
+}
+
+/* SHORTS */
+.shorts{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  overflow-y:scroll;
+  scroll-snap-type:y mandatory;
+}
+.short{
+  width:100%;
+  height:100vh;
+  object-fit:cover;
+  scroll-snap-align:start;
+}
+
+/* PLAYER PAGE */
+.player{
+  width:100%;
+  height:90vh;
+}
+
+.hidden{display:none}
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+  <h2>NormTub PRO</h2>
+  <input id="search" placeholder="Search">
+</div>
+
+<div style="padding:20px">
+  <input type="file" id="file">
+  <button onclick="upload()">Upload</button>
+  <button onclick="toggleShorts()">Shorts Mode</button>
+</div>
+
+<div id="feed" class="grid"></div>
+
+<div id="shorts" class="shorts hidden"></div>
+
+<script>
+
+let token = null;
+
+async function login(){
+  let res = await fetch("/login",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({username:"admin",password:"admin"})
+  });
+  let data = await res.json();
+  token = data.token;
+}
+
+async function upload(){
+  let f=document.getElementById("file").files[0];
+  let form=new FormData();
+  form.append("video",f);
+
+  await fetch("/upload",{
+    method:"POST",
+    headers:{Authorization:token},
+    body:form
+  });
+
+  load();
+}
+
+async function load(){
+  let res = await fetch("/videos");
+  let vids = await res.json();
+
+  let feed=document.getElementById("feed");
+  let shorts=document.getElementById("shorts");
+
+  feed.innerHTML="";
+  shorts.innerHTML="";
+
+  vids.forEach(v=>{
+
+    let card=document.createElement("div");
+    card.className="card";
+
+    let video=document.createElement("video");
+    video.src="/uploads/"+v.file;
+    video.controls=true;
+
+    card.appendChild(video);
+
+    card.onclick=()=>{
+      window.open("/uploads/"+v.file);
+    }
+
+    feed.appendChild(card);
+
+    // shorts
+    let s=document.createElement("video");
+    s.src="/uploads/"+v.file;
+    s.className="short";
+    s.autoplay=true;
+    s.loop=true;
+
+    shorts.appendChild(s);
+  });
+}
+
+function toggleShorts(){
+  document.getElementById("feed").classList.toggle("hidden");
+  document.getElementById("shorts").classList.toggle("hidden");
+}
+
+login();
+load();
+
+</script>
+
+</body>
+</html>
